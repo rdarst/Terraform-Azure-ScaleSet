@@ -1,7 +1,7 @@
 provider "azurerm" {}
 
 resource "azurerm_resource_group" "rg" {
-  name = "azurelab"
+  name = "clelab"
   location = "East US"
 }
 
@@ -168,12 +168,16 @@ resource "azurerm_subnet" "External_subnet"  {
   }
 
 
-resource "azurerm_subnet" "Gateway_subnet"  {
-    name           = "GatewaySubnet"
-    resource_group_name  = "${azurerm_resource_group.rg.name}"
-    virtual_network_name = "${azurerm_virtual_network.vnet.name}"
-    address_prefix = "10.99.100.0/24"
-route_table_id = "${azurerm_route_table.GWRT.id}"
+  resource "azurerm_subnet" "Gateway_subnet"  {
+      name           = "GatewaySubnet"
+      resource_group_name  = "${azurerm_resource_group.rg.name}"
+      virtual_network_name = "${azurerm_virtual_network.vnet.name}"
+      address_prefix = "10.99.100.0/24"
+    }
+
+  resource "azurerm_subnet_route_table_association" "Gateway_Subnet_Assoc" {
+    subnet_id      = "${azurerm_subnet.Gateway_subnet.id}"
+    route_table_id = "${azurerm_route_table.GWRT.id}"
   }
 
 resource "azurerm_subnet" "Internal_subnet"   {
@@ -187,21 +191,35 @@ resource "azurerm_subnet" "DMZ1_subnet"  {
     resource_group_name  = "${azurerm_resource_group.rg.name}"
     virtual_network_name = "${azurerm_virtual_network.vnet.name}"
     address_prefix = "10.99.11.0/24"
-	route_table_id = "${azurerm_route_table.DMZ1RT.id}"
   }
+
+resource "azurerm_subnet_route_table_association" "DMZ1_Subnet_Assoc" {
+    subnet_id      = "${azurerm_subnet.DMZ1_subnet.id}"
+    route_table_id = "${azurerm_route_table.DMZ1RT.id}"
+  }
+
 resource "azurerm_subnet" "DMZ2_subnet"  {
     name           = "DMZ2"
     resource_group_name  = "${azurerm_resource_group.rg.name}"
     virtual_network_name = "${azurerm_virtual_network.vnet.name}"
     address_prefix = "10.99.12.0/24"
-	route_table_id = "${azurerm_route_table.DMZ2RT.id}"
   }
+
+resource "azurerm_subnet_route_table_association" "DMZ2_Subnet_Assoc" {
+    subnet_id      = "${azurerm_subnet.DMZ2_subnet.id}"
+    route_table_id = "${azurerm_route_table.DMZ2RT.id}"
+  }
+
 resource "azurerm_subnet" "DMZ3_subnet" {
     name           = "DMZ3"
     resource_group_name  = "${azurerm_resource_group.rg.name}"
     virtual_network_name = "${azurerm_virtual_network.vnet.name}"
     address_prefix = "10.99.13.0/24"
-	route_table_id = "${azurerm_route_table.DMZ3RT.id}"
+  }
+
+resource "azurerm_subnet_route_table_association" "DMZ3_Subnet_Assoc" {
+    subnet_id      = "${azurerm_subnet.DMZ3_subnet.id}"
+    route_table_id = "${azurerm_route_table.DMZ3RT.id}"
   }
 
 # Generate random text for a unique storage account name
@@ -248,7 +266,7 @@ resource "azurerm_public_ip" "albvip1" {
   sku                          = "Standard"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "static"
+  allocation_method            = "Static"
   #domain_name_label            = "${azurerm_resource_group.rg.name}"
 }
 
@@ -271,7 +289,7 @@ resource "azurerm_public_ip" "jumphostvip" {
   sku                          = "basic"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "dynamic"
+  allocation_method            = "Dynamic"
   #domain_name_label            = "${azurerm_resource_group.rg.name}"
 }
 
@@ -455,6 +473,7 @@ resource "azurerm_virtual_machine_scale_set" "chkpscaleset" {
 
     ip_configuration {
       name                                   = "TestIPConfiguration"
+      primary = true
       subnet_id                              = "${azurerm_subnet.External_subnet.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.bpepool.id}"]
       public_ip_address_configuration {
@@ -473,6 +492,7 @@ resource "azurerm_virtual_machine_scale_set" "chkpscaleset" {
 
     ip_configuration {
       name                                   = "TestIPConfiguration1"
+      primary = true
       subnet_id                              = "${azurerm_subnet.Internal_subnet.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.bpepoolinternal.id}"]
 
@@ -488,7 +508,7 @@ resource "azurerm_virtual_machine_scale_set" "chkpscaleset" {
       }
 }
 
-resource "azurerm_autoscale_setting" "scalesetrules" {
+resource "azurerm_monitor_autoscale_setting" "scalesetrules" {
   name                = "chkpAutoscaleSetting"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
@@ -564,8 +584,13 @@ resource "azurerm_network_interface" "ubuntuDMZ1" {
         subnet_id                     = "${azurerm_subnet.DMZ1_subnet.id}"
         private_ip_address_allocation = "Static"
         private_ip_address = "10.99.11.10"
-        load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.bpepoolwebserver.id}"]
     }
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "backendwebserver_assoc1" {
+  network_interface_id    = "${azurerm_network_interface.ubuntuDMZ1.id}"
+  ip_configuration_name   = "ubuntuDMZ1Configuration"
+  backend_address_pool_id = "${azurerm_lb_backend_address_pool.bpepoolwebserver.id}"
 }
 
 resource "azurerm_network_interface" "ubuntuDMZ2" {
@@ -578,8 +603,13 @@ resource "azurerm_network_interface" "ubuntuDMZ2" {
         subnet_id                     = "${azurerm_subnet.DMZ2_subnet.id}"
         private_ip_address_allocation = "Static"
         private_ip_address = "10.99.12.10"
-        load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.bpepoolwebserver.id}"]
     }
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "backendwebserver_assoc2" {
+  network_interface_id    = "${azurerm_network_interface.ubuntuDMZ2.id}"
+  ip_configuration_name   = "ubuntuDMZ2Configuration"
+  backend_address_pool_id = "${azurerm_lb_backend_address_pool.bpepoolwebserver.id}"
 }
 
 resource "azurerm_network_interface" "win_server_nic" {
