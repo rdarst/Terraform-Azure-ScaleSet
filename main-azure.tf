@@ -457,7 +457,7 @@ resource "azurerm_virtual_machine_scale_set" "chkpscaleset" {
     computer_name_prefix = "chkpgw"
     admin_username       = "chkpadmin"
     admin_password       = "Cpwins1!"
-    custom_data =  "#!/bin/bash\nblink_config -s 'gateway_cluster_member=false&ftw_sic_key=vpn12345&upload_info=true&download_info=true&admin_hash=\"$1$8SfURAAf$dXRtRJQX8cFPg25NTqv9T0\"'\nExtAddr=\"$(ip addr show dev eth0 | awk \"/inet/{print \\$2; exit}\" | cut -d / -f 1)\"\nIntAddr=\"$(ip addr show dev eth1 | awk \"/inet/{print \\$2; exit}\" | cut -d / -f 1)\"\ndynamic_objects -n LocalGatewayExternal -r \"$ExtAddr\" \"$ExtAddr\" -a\ndynamic_objects -n LocalGatewayInternal -r \"$IntAddr\" \"$IntAddr\" -a\nshutdown -r now\n"
+    custom_data =  "#!/bin/bash\nblink_config -s 'gateway_cluster_member=false&ftw_sic_key=vpn12345&upload_info=true&download_info=true'\nExtAddr=\"$(ip addr show dev eth0 | awk \"/inet/{print \\$2; exit}\" | cut -d / -f 1)\"\nIntAddr=\"$(ip addr show dev eth1 | awk \"/inet/{print \\$2; exit}\" | cut -d / -f 1)\"\ndynamic_objects -n LocalGatewayExternal -r \"$ExtAddr\" \"$ExtAddr\" -a\ndynamic_objects -n LocalGatewayInternal -r \"$IntAddr\" \"$IntAddr\" -a\nshutdown -r now\n"
 
   }
 
