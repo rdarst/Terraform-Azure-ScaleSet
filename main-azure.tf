@@ -499,7 +499,7 @@ resource "azurerm_virtual_machine_scale_set" "chkpscaleset" {
     }
 
   }
-  tags {
+  tags = {
           x-chkp-template = "gcpstandard"
           x-chkp-management = "r80dot10mgmt"
           x-chkp-ip-address = "public"
