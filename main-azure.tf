@@ -782,7 +782,7 @@ resource "azurerm_virtual_machine" "win_server" {
   }
 
   os_profile {
-    computer_name      = "winservertest"
+    computer_name      = "winservertest1"
     admin_username     = "azureuser"
     admin_password     = "Cpwins1!"
 
